@@ -43,12 +43,20 @@ if (window.location.pathname.includes("admin.html")) {
   const loadStatsButton = document.getElementById("loadStatsButton");
   const resetButton = document.getElementById("resetButton");
 
-  let adminPassword = "";
+  let adminPassword = localStorage.getItem("adminPassword") || "";
+
+if (passwordInput && adminPassword) {
+  passwordInput.value = adminPassword;
+}
 
   loadStatsButton.addEventListener("click", () => {
 
+    adminPassword = passwordInput.value;
+    localStorage.setItem("adminPassword", adminPassword);
+
     adminPassword =
       document.getElementById("adminPassword").value;
+      
 
     fetch("/api/stats", {
       headers: {
