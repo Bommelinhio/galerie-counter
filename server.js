@@ -1,15 +1,28 @@
 const express = require("express");
 const fs = require("fs");
 const path = require("path");
+const helmet = require("helmet");
+const rateLimit = require("express-rate-limit");
 
 const app = express();
 const PORT = process.env.PORT || 3000;
 
+const ADMIN_USER = process.env.ADMIN_USER || "admin";
 const ADMIN_PASSWORD = process.env.ADMIN_PASSWORD || "admin123";
+
 const DATA_FILE = path.join(__dirname, "data.json");
 
-app.use(express.json());
-app.use(express.static(path.join(__dirname, "public")));
+app.use(helmet());
+app.use(express.json({ limit: "20kb" }));
+
+const adminLimiter = rateLimit({
+  windowMs: 15 * 60 * 1000,
+  max: 20,
+  message: {
+    success: false,
+    message: "Zu viele Versuche. Bitte später erneut versuchen."
+  }
+});
 
 function getDefaultData() {
   return {
@@ -43,8 +56,8 @@ function readData() {
 
     return {
       pageViews: {
-        home: data.pageViews?.home || 0,
-        gallery: data.pageViews?.gallery || 0
+        home: Number(data.pageViews?.home) || 0,
+        gallery: Number(data.pageViews?.gallery) || 0
       },
       imageClicks: {
         ...getDefaultData().imageClicks,
@@ -63,7 +76,7 @@ function writeData(data) {
   fs.writeFileSync(DATA_FILE, JSON.stringify(data, null, 2));
 }
 
-function checkAdminPassword(req, res, next) {
+function checkAdminHeader(req, res, next) {
   const password = req.headers["x-admin-password"];
 
   if (password !== ADMIN_PASSWORD) {
@@ -76,35 +89,77 @@ function checkAdminPassword(req, res, next) {
   next();
 }
 
-app.post("/api/count/page", (req, res) => {
-  const { page } = req.body;
-  const data = readData();
+function checkBasicAuth(req, res, next) {
+  const authHeader = req.headers.authorization;
 
-  if (data.pageViews[page] !== undefined) {
-    data.pageViews[page]++;
-    writeData(data);
+  if (!authHeader || !authHeader.startsWith("Basic ")) {
+    res.setHeader("WWW-Authenticate", 'Basic realm="Adminbereich"');
+    return res.status(401).send("Login erforderlich");
   }
+
+  const base64Credentials = authHeader.split(" ")[1];
+  const credentials = Buffer.from(base64Credentials, "base64").toString("utf8");
+  const [user, password] = credentials.split(":");
+
+  if (user !== ADMIN_USER || password !== ADMIN_PASSWORD) {
+    res.setHeader("WWW-Authenticate", 'Basic realm="Adminbereich"');
+    return res.status(401).send("Falsche Zugangsdaten");
+  }
+
+  next();
+}
+
+app.get("/admin.html", adminLimiter, checkBasicAuth, (req, res) => {
+  res.sendFile(path.join(__dirname, "public", "admin.html"));
+});
+
+app.use(express.static(path.join(__dirname, "public")));
+
+app.post("/api/count/page", (req, res) => {
+  const allowedPages = ["home", "gallery"];
+  const { page } = req.body;
+
+  if (!allowedPages.includes(page)) {
+    return res.status(400).json({ success: false });
+  }
+
+  const data = readData();
+  data.pageViews[page]++;
+  writeData(data);
 
   res.json({ success: true });
 });
 
 app.post("/api/count/image", (req, res) => {
-  const { image } = req.body;
-  const data = readData();
+  const allowedImages = [
+    "image1",
+    "image2",
+    "image3",
+    "image4",
+    "image5",
+    "image6",
+    "image7",
+    "image8"
+  ];
 
-  if (data.imageClicks[image] !== undefined) {
-    data.imageClicks[image]++;
-    writeData(data);
+  const { image } = req.body;
+
+  if (!allowedImages.includes(image)) {
+    return res.status(400).json({ success: false });
   }
+
+  const data = readData();
+  data.imageClicks[image]++;
+  writeData(data);
 
   res.json({ success: true });
 });
 
-app.get("/api/stats", checkAdminPassword, (req, res) => {
+app.get("/api/stats", adminLimiter, checkAdminHeader, (req, res) => {
   res.json(readData());
 });
 
-app.post("/api/reset", checkAdminPassword, (req, res) => {
+app.post("/api/reset", adminLimiter, checkAdminHeader, (req, res) => {
   const resetData = getDefaultData();
   writeData(resetData);
 
@@ -115,5 +170,5 @@ app.post("/api/reset", checkAdminPassword, (req, res) => {
 });
 
 app.listen(PORT, () => {
-  console.log(`Server läuft auf http://localhost:${PORT}`);
+  console.log(`Server läuft auf Port ${PORT}`);
 });
