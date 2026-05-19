@@ -1,0 +1,72 @@
+<!DOCTYPE html>
+<html lang="de">
+
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+
+  <title>Admin Statistik</title>
+
+  <link rel="stylesheet" href="style.css" />
+</head>
+
+<body>
+
+  <main class="admin-page">
+
+    <h1 class="admin-title">
+      Interne Statistik
+    </h1>
+
+    <section class="admin-card">
+
+      <div class="admin-login">
+
+        <input
+          type="password"
+          id="adminPassword"
+          placeholder="Admin Passwort">
+
+        <button id="loadStatsButton">
+          Statistik laden
+        </button>
+
+      </div>
+
+      <div id="adminContent" class="hidden">
+
+        <h2>Seitenaufrufe</h2>
+
+        <div class="counter-grid">
+
+          <div class="counter-box">
+            <span>Hauptseite</span>
+            <strong id="homeCount">0</strong>
+          </div>
+
+          <div class="counter-box">
+            <span>Galerie</span>
+            <strong id="galleryCount">0</strong>
+          </div>
+
+        </div>
+
+        <h2>Bild-Klicks</h2>
+
+        <div id="imageStats" class="image-counter-grid"></div>
+
+        <button id="resetButton" class="reset-button">
+          Zähler zurücksetzen
+        </button>
+
+      </div>
+
+    </section>
+
+  </main>
+
+  <script src="app.js"></script>
+
+</body>
+
+</html>
