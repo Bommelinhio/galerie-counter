@@ -50,12 +50,12 @@ if (passwordInput && adminPassword) {
 }
 
   loadStatsButton.addEventListener("click", () => {
-
-    adminPassword = passwordInput.value;
-    localStorage.setItem("adminPassword", adminPassword);
+    
 
     adminPassword =
       document.getElementById("adminPassword").value;
+      passwordInput.value;
+      localStorage.setItem("adminPassword", adminPassword);
       
 
     fetch("/api/stats", {
